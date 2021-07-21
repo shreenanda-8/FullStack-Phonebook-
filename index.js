@@ -1,5 +1,5 @@
 const express = require('express')
-
+const Phone = require('./models/phone.js')
 const app = express()
 const cors = require('cors')
 
@@ -49,7 +49,14 @@ const data = [
     }
 ]
 app.get('/api/persons', (request, response) => {
-    response.send(JSON.stringify(data))
+   Phone.find({})
+   .then((res)=>{
+       response.json(res)
+   })
+   .catch((err)=>{
+       console.log({error: err.message})
+   })
+   
 })
 app.get('/info', (request, response) => {
 
@@ -85,11 +92,14 @@ app.delete('/api/persons/:id', (request, response) => {
     response.status(204).end()
 })
 app.post('/api/persons', (request, response) => {
-    const info = {
-        name: `${request.body.name}`,
-        number: `${request.body.number}`,
-        id: getRandom()
-    }
+    const body = request.body
+
+    const info = new Phone({
+        name: `${body.name}`,
+        number: `${body.number}`,
+        date: new Date 
+    })
+    
     if (info.name.length && info.number.length) {
         const value = data.filter((item) => {
             
@@ -98,17 +108,23 @@ app.post('/api/persons', (request, response) => {
        
        
         if (value.length) {
-            response.status(406).json({ error: "Name must be unique" })
+          return  response.status(406).json({ error: "Name must be unique" })
 
         }
         else {
-            data.push(info)
+            info.save()
+            .then((res)=>{
+              return  response.status(202).json(res)
+            })
+            .catch((err)=>{
+               return response.status(400).json({error: err.message})
+            })
            
-            response.status(202).json(data)
+           
         }
     }
     else {
-        response.status(406).json({ error: "Inormation is not sufficient" })
+        return response.status(406).json({ error: "Inormation is not sufficient" })
     }
 
 })
