@@ -7,6 +7,7 @@ app.use(cors())
 var morgan = require('morgan')
 
 app.use(express.json())
+app.use(express.static('build'))
 morgan.token('post',  (req)=>{
 	if(req.method === 'POST')
     {
