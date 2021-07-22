@@ -8,126 +8,131 @@ var morgan = require('morgan')
 
 app.use(express.json())
 app.use(express.static('build'))
-morgan.token('post',  (req)=>{
-	if(req.method === 'POST')
-    {
+morgan.token('post', (req) => {
+    if (req.method === 'POST') {
         return JSON.stringify(req.body)
     }
-	else
-    {
+    else {
 
-		return null
+        return null
     }
 })
 
-morgan.format('data',':method :url :status :res[content-length] - :response-time ms :post')
+morgan.format('data', ':method :url :status :res[content-length] - :response-time ms :post')
 
 app.use(morgan('data'))
-const getRandom = () => {
-    return Math.floor((Math.random() * 100000000000) + 121);
-}
-const data = [
-    {
-        "id": 1,
-        "name": "Arto Hellas",
-        "number": "040-123456"
-    },
-    {
-        "id": 2,
-        "name": "Ada Lovelace",
-        "number": "39-44-5323523"
-    },
-    {
-        "id": 3,
-        "name": "Dan Abramov",
-        "number": "12-43-234345"
-    },
-    {
-        "id": 4,
-        "name": "Mary Poppendieck",
-        "number": "39-23-6423122"
-    }
-]
-app.get('/api/persons', (request, response) => {
-   Phone.find({})
-   .then((res)=>{
-       response.json(res)
-   })
-   .catch((err)=>{
-       console.log({error: err.message})
-   })
-   
+
+app.get('/api/persons', (request, response, next) => {
+    Phone.find({})
+        .then((res) => {
+            response.json(res)
+        })
+        .catch((err) => {
+            next(err)
+        })
+
 })
 app.get('/info', (request, response) => {
 
-    response.send(
-        `<div>
-       <p>Phonebook has info for ${data.length} people</p>
-       ${new Date()}
-       </div>
-       
-       `
-    )
-})
-app.get('/api/persons/:id', (request, response) => {
+    Phone.find({})
+        .then((data) => {
+            console.log(data)
+            response.send(
+                `<div>
+           <p>Phonebook has info for ${data.length} people</p>
+           ${new Date()}
+           </div>
+           
+           `
+            )
+        })
 
-    const ID = Number(request.params.id)
-    const info = data.filter((info) => info.id === ID)
-    console.log(info)
-    if (info.length) {
-
-        response.json(info)
-    }
-    else {
-        response.status(404).send("Reqeusting user not found")
-    }
 
 })
-app.delete('/api/persons/:id', (request, response) => {
-    console.log("Deleted")
-    const list = data.filter((info) => {
-        return info.id !== Number(request.params.id)
-    })
-    data = list
-    response.status(204).end()
+app.get('/api/persons/:id', (request, response, next) => {
+    const id = request.params.id
+    Phone.findById(id)
+        .then((res) => {
+            if (res) {
+                response.status(200).json(res)
+            }
+            else {
+                response.status(404).end()
+            }
+
+        })
+        .catch((err) => {
+            next(err)
+        })
+
+
 })
-app.post('/api/persons', (request, response) => {
+app.delete('/api/persons/:id', (request, response, next) => {
+    const id = request.params.id
+    Phone.findByIdAndDelete(id)
+        .then((res) => {
+            console.log(res)
+            response.status(204).end()
+        })
+        .catch((err) => {
+            next(err)
+        })
+
+})
+app.post('/api/persons', (request, response, next) => {
     const body = request.body
 
     const info = new Phone({
         name: `${body.name}`,
         number: `${body.number}`,
-        date: new Date 
+        date: new Date
     })
-    
-    if (info.name.length && info.number.length) {
-        const value = data.filter((item) => {
-            
-            return item.name == info.name
-        })
-       
-       
-        if (value.length) {
-          return  response.status(406).json({ error: "Name must be unique" })
 
-        }
-        else {
-            info.save()
-            .then((res)=>{
-              return  response.status(202).json(res)
-            })
-            .catch((err)=>{
-               return response.status(400).json({error: err.message})
-            })
-           
-           
-        }
+    if (info.name.length && info.number.length) {
+       
+                    info.save()
+                        .then((res) => {
+                           return res.toJSON()
+                        })
+                        .then((res)=>{
+                            response.json(res)
+                        })
+                        .catch((err) => {
+                            next(err)
+                        })
+
     }
     else {
         return response.status(406).json({ error: "Inormation is not sufficient" })
     }
 
 })
+app.put('/api/persons/:id', (request, response, next)=>{
+    const ID = request.params.id
+    const data = {
+        name:request.body.name,
+        number: request.body.number
+    }
+
+    Phone.findByIdAndUpdate(ID,data,{new: true})
+         .then((res)=>{
+             
+             response.json(res)
+         })
+         .catch((err)=>next(err))
+
+})
+const unknownEndpoint = (request, response) => {
+    response.status(404).send({ error: "Unknown endpoint" })
+}
+app.use(unknownEndpoint)
+const errorHandler = (error, request, response, next) => {
+    if (error.name === 'CastError') {
+        return response.status(400).send({ error: 'malformatted id' })
+    }
+    next(error)
+}
+app.use(errorHandler)
 const PORT = process.env.PORT || 3001
 app.listen(PORT, (request, response) => {
     console.log("Server started running")
