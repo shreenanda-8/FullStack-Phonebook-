@@ -69,12 +69,24 @@ app.get('/api/persons/:id', (request, response, next) => {
 })
 app.delete('/api/persons/:id', (request, response, next) => {
     const id = request.params.id
+
     Phone.findByIdAndDelete(id)
         .then((res) => {
-            console.log(res)
-            response.status(204).end()
+            
+            if(res)
+            {
+                response.status(204).end()
+            }
+            else
+            {
+                //In frontend, you can see the same error by using Err.response.data.error
+                //Err represents catch(Err) in frontend
+                response.status(400).send({error: "Already removed from the server, Refresh the page!!!"})
+              
+            }
         })
         .catch((err) => {
+            console.log("I am here mf")
             next(err)
         })
 
@@ -89,17 +101,17 @@ app.post('/api/persons', (request, response, next) => {
     })
 
     if (info.name.length && info.number.length) {
-       
-                    info.save()
-                        .then((res) => {
-                           return res.toJSON()
-                        })
-                        .then((res)=>{
-                            response.json(res)
-                        })
-                        .catch((err) => {
-                            next(err)
-                        })
+
+        info.save()
+            .then((res) => {
+                return res.toJSON()
+            })
+            .then((res) => {
+                response.json(res)
+            })
+            .catch((err) => {
+                next(err)
+            })
 
     }
     else {
@@ -107,19 +119,30 @@ app.post('/api/persons', (request, response, next) => {
     }
 
 })
-app.put('/api/persons/:id', (request, response, next)=>{
+app.put('/api/persons/:id', (request, response, next) => {
     const ID = request.params.id
     const data = {
-        name:request.body.name,
+        name: request.body.name,
         number: request.body.number
     }
-
-    Phone.findByIdAndUpdate(ID,data,{new: true})
-         .then((res)=>{
-             
-             response.json(res)
-         })
-         .catch((err)=>next(err))
+    const opts = { runValidators: true, new: true }
+     
+//Find one and update => for validation purposes
+    Phone.findByIdAndUpdate({ _id: ID}, { number: data.number }, opts, (err, res) => {
+        if (err) {
+           next(err)
+        }
+        else if(!res)
+        {
+            //If the content on the basis of which you are searching the data is absent,
+            //It responses with null. It does not gives error
+            //To handle that I am writing this
+            response.status(404).send({error: "Already deleted from the server"})
+        }
+        else {
+            response.json(res)
+        }
+    })
 
 })
 const unknownEndpoint = (request, response) => {
@@ -129,6 +152,9 @@ app.use(unknownEndpoint)
 const errorHandler = (error, request, response, next) => {
     if (error.name === 'CastError') {
         return response.status(400).send({ error: 'malformatted id' })
+    }
+    else if (error.name === 'ValidationError') {
+        return response.status(400).json({ error: error.message })
     }
     next(error)
 }

@@ -1,9 +1,9 @@
 const mongoose = require('mongoose')
-
+const uniqueValidator = require('mongoose-unique-validator');
 const dotenv = require('dotenv')
 dotenv.config()
-const url = 'mongodb+srv://nanda:simple@cluster0.s3vdf.mongodb.net/peoples?retryWrites=true&w=majority'
-mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false, useCreateIndex: true })
+
+mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false, useCreateIndex: true })
 .then((res)=>{
     console.log("Connected")
 })
@@ -12,9 +12,18 @@ mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, useFind
 })
 
 const phoneSchema = mongoose.Schema({
-   name: String,
-   number: String,
-   date: Date
+  name: {
+    type: String,
+    minlength: 3,
+    required: true,
+    unique: true
+  },
+  number: {
+    type: String,
+    minlength: 8,
+    required: true
+  },
+  date: Date
 })
 phoneSchema.set('toJSON', {
   transform: (document, returnedObject) => {
@@ -23,5 +32,5 @@ phoneSchema.set('toJSON', {
     delete returnedObject.__v
   }
 })
-
+phoneSchema.plugin(uniqueValidator);
 module.exports = mongoose.model('Phone',phoneSchema )
