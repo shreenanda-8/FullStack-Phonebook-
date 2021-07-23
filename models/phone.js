@@ -1,15 +1,15 @@
 const mongoose = require('mongoose')
-const uniqueValidator = require('mongoose-unique-validator');
+const uniqueValidator = require('mongoose-unique-validator')
 const dotenv = require('dotenv')
 dotenv.config()
 
 mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false, useCreateIndex: true })
-.then((res)=>{
-    console.log("Connected")
-})
-.catch((err)=>{
-    console.log({error: err.message})
-})
+  .then(() => {
+    console.log('Connected')
+  })
+  .catch((err) => {
+    console.log({ error: err.message })
+  })
 
 const phoneSchema = mongoose.Schema({
   name: {
@@ -32,5 +32,5 @@ phoneSchema.set('toJSON', {
     delete returnedObject.__v
   }
 })
-phoneSchema.plugin(uniqueValidator);
+phoneSchema.plugin(uniqueValidator)
 module.exports = mongoose.model('Phone',phoneSchema )
